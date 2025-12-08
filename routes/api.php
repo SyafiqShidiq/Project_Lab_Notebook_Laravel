@@ -4,6 +4,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RevisionController;
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/notes/{note}/revision', [RevisionController::class, 'store']);
+    Route::get('/notes/{note}/revisions', [RevisionController::class, 'index']);
+});
+
 
 // AUTH
 Route::post('/register', [AuthController::class, 'register']);

@@ -11,4 +11,10 @@ class Note extends Model
     use HasFactory;
     use SoftDeletes;
     protected $fillable = ['title', 'category', 'objective', 'content'];
+
+public function revisions()
+{
+    return $this->hasMany(Revision::class);
+}
+
 }
