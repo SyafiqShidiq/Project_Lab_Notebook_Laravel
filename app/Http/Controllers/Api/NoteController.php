@@ -11,9 +11,11 @@ class NoteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $r)
     {
-        return Note::orderByDesc('id')->get();
+        return Note::where('user_id', $r->user()->id)
+               ->orderByDesc('id')
+               ->get();
     }
 
     /**
@@ -27,22 +29,29 @@ class NoteController extends Controller
             'objective' => 'required|string',
             'content' => 'required|string',
         ]);
+        $data['user_id'] = $r->user()->id;
         return Note::create($data);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Note $note)
+    public function show($id)
     {
-        return $note;
+        return Note::where('id', $id)
+               ->where('user_id', auth()->id())
+               ->firstOrFail();
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $r, Note $note)
+    public function update(Request $r, $id)
     {
+        $note = Note::where('id', $id)
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+
         $r->validate([
             'revision_content' => 'required|string',
         ]);
@@ -67,8 +76,12 @@ class NoteController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Note $note)
+    public function destroy($id)
     {
+        $note = Note::where('id', $id)
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+                
         $note->delete();
         return response()->json([
             'message' => 'Note dipindahkan ke Archive sampah'
@@ -76,18 +89,18 @@ class NoteController extends Controller
     }
     public function trash()
     {
-        $notes = Note::onlyTrashed()->get();
+        $notes = Note::onlyTrashed()->where('user_id', auth()->id())->orderByDesc('deleted_at')->get();
 
         return response()->json($notes);
     }
     public function trashed($id)
     {
-        $note = Note::onlyTrashed()->findOrFail($id);
+        $note = Note::onlyTrashed()->where('id', $id)->where('user_id', auth()->id())->firstOrFail();
         return response()->json($note);
     }
     public function restore($id)
     {
-        $note = Note::onlyTrashed()->findOrFail($id);
+        $note = Note::onlyTrashed()->where('id', $id)->where('user_id', auth()->id())->firstOrFail();
         $note->restore();
 
         return response()->json([
@@ -96,7 +109,7 @@ class NoteController extends Controller
     }
     public function forceDelete($id)
     {
-        $note = Note::onlyTrashed()->findOrFail($id);
+        $note = Note::onlyTrashed()->where('id', $id)->where('user_id', auth()->id())->firstOrFail();
         $note->forceDelete();
 
         return response()->json([

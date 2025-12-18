@@ -10,5 +10,11 @@ class Note extends Model
 {
     use HasFactory;
     use SoftDeletes;
-    protected $fillable = ['title', 'category', 'objective', 'content'];
+    protected $fillable = ['title', 'category', 'objective', 'content', 'user_id'];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
+
