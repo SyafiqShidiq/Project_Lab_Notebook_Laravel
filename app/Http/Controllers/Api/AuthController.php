@@ -23,8 +23,10 @@ class AuthController extends Controller
             'email'    => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
+        $user->sendEmailVerificationNotification();
 
         return response()->json([
+            'message' => 'Register sukses, cek email verifikasi',
             'user'  => $user
         ], 201);
     }
@@ -41,6 +43,9 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             return response()->json(['message' => 'Credentials invalid'], 401);
+        }
+        if (! $user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email belum diverifikasi'], 403);
         }
 
         // hapus token lama kalau mau "single session"

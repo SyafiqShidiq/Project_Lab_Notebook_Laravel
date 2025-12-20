@@ -13,9 +13,8 @@ return new class extends Migration
     {
         Schema::table('notes', function (Blueprint $table) {
             $table->foreignId('user_id')
-          ->nullable()
-          ->constrained()
-          ->cascadeOnDelete();
+                  ->constrained()
+                  ->onDelete('cascade');
         });
     }
 
