@@ -9,6 +9,8 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OtpMail;
 
 class AuthController extends Controller
 {
@@ -95,24 +97,21 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json(['message' => 'Email not found'], 404);
+            return response()->json(['message' => 'Email tidak ditemukan'], 404);
         }
 
-        $token = Str::random(64);
+        $otp = rand(100000, 999999);
 
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'token' => $token,
-                'created_at' => now()
-            ]
-        );
-
-        return response()->json([
-            'message' => 'Reset token generated',
-            'token' => $token
+        $user->update([
+            'otp' => $otp,
+            'otp_expires_at' => now()->addMinutes(5)
         ]);
+
+        Mail::to($user->email)->send(new OtpMail($otp));
+
+        return response()->json(['message' => 'OTP dikirim ke email']);
     }
+
 
 
         /**
@@ -122,35 +121,30 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'token' => 'required',
-            'password' => 'required|min:6|confirmed'
+            'otp' => 'required',
+            'password' => 'required|confirmed|min:6'
         ]);
 
-        $record = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->where('token', $request->token)
+        $user = User::where('email', $request->email)
+            ->where('otp', $request->otp)
+            ->where('otp_expires_at', '>', now())
             ->first();
 
-        if (!$record) {
-            return response()->json(['message' => 'Invalid token'], 400);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
         if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+            return response()->json([
+                'message' => 'OTP tidak valid atau kadaluarsa'
+            ], 400);
         }
 
-        $user->password = Hash::make($request->password);
-        $user->save();
-
-        // hapus token setelah berhasil
-        DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->delete();
+        $user->update([
+            'password' => bcrypt($request->password),
+            'otp' => null,
+            'otp_expires_at' => null
+        ]);
 
         return response()->json([
-            'message' => 'Password reset success'
+            'message' => 'Password berhasil direset'
         ]);
     }
+
 }
